@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Raffle Racing</title>
+<meta name="description" content="A night-time car race raffle picker for 60–80 entrants.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;600;700&display=swap">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<script src="js/config.js" defer></script>
+<script src="js/state.js" defer></script>
+<script src="js/scene.js" defer></script>
+<script src="js/race.js" defer></script>
+<script src="js/draw.js" defer></script>
+<script src="js/audio.js" defer></script>
+<script src="js/ui.js" defer></script>
+<script src="js/main.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Raffle <span>Racing</span></h1>
+      <p>Midnight edition · street raffle draw</p>
+    </div>
+    <dl class="meta">
+      <div><dt>Drivers</dt><dd id="metaDrivers">0</dd></div>
+      <div><dt>Race</dt><dd id="metaRace">00</dd></div>
+      <div><dt>Distance</dt><dd id="metaDist">640 m</dd></div>
+    </dl>
+  </header>
+
+  <section class="arena" id="arena" aria-label="Race track">
+    <div class="stage" id="stage">
+      <canvas id="track" role="img" aria-label="Night race track. Live positions are listed in the Standings tab."></canvas>
+      <div class="hud">
+        <span class="hud-status" id="status">On the grid</span>
+        <span class="hud-clock" id="clock">00:00.00</span>
+      </div>
+      <div class="countdown" id="countdown" hidden>
+        <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="cd-text" id="cdText" aria-hidden="true">3</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button id="btnStart" class="btn-go" type="button">Start race</button>
+      <button id="btnSkip" class="btn" type="button" disabled>Skip to finish</button>
+      <span class="spacer"></span>
+      <div class="field">
+        <label for="duration">Race length</label>
+        <select id="duration">
+          <option value="10">10 s sprint</option>
+          <option value="20" selected>20 s</option>
+          <option value="30">30 s</option>
+          <option value="45">45 s</option>
+          <option value="60">60 s endurance</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="winners">Winners</label>
+        <select id="winners">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="5">5</option>
+        </select>
+      </div>
+      <label class="toggle"><input type="checkbox" id="sound" checked> Sound</label>
+      <button id="btnFs" class="btn" type="button">Fullscreen</button>
+    </div>
+  </section>
+
+  <aside class="side" aria-label="Pit wall">
+    <div class="tabs" role="tablist" aria-label="Race panels">
+      <button role="tab" type="button" id="tab-entrants" aria-controls="panel-entrants" aria-selected="true">Entrants</button>
+      <button role="tab" type="button" id="tab-standings" aria-controls="panel-standings" aria-selected="false" tabindex="-1">Standings</button>
+      <button role="tab" type="button" id="tab-winners" aria-controls="panel-winners" aria-selected="false" tabindex="-1">Winners</button>
+    </div>
+
+    <div class="panel" role="tabpanel" id="panel-entrants" aria-labelledby="tab-entrants">
+      <label for="names" class="lbl">One name per line · line number = car number</label>
+      <textarea id="names" spellcheck="false" autocomplete="off"></textarea>
+      <p class="note" id="sampleNote" hidden>Sample entrants loaded. Paste your own list to replace them.</p>
+      <p class="count" id="count" aria-live="polite"></p>
+      <div class="row-btns">
+        <button id="btnShuffle" class="btn" type="button">Shuffle</button>
+        <button id="btnDedupe" class="btn" type="button">Remove duplicates</button>
+        <label class="btn file">Load .txt / .csv<input type="file" id="file" accept=".txt,.csv,text/plain,text/csv"></label>
+        <button id="btnClear" class="btn" type="button">Clear</button>
+      </div>
+    </div>
+
+    <div class="panel" role="tabpanel" id="panel-standings" aria-labelledby="tab-standings" hidden>
+      <label for="find" class="lbl">Find a driver</label>
+      <input id="find" type="search" placeholder="Type a name or car number" autocomplete="off">
+      <ol class="standings" id="standings" aria-label="Positions"></ol>
+    </div>
+
+    <div class="panel" role="tabpanel" id="panel-winners" aria-labelledby="tab-winners" hidden>
+      <ol class="log" id="log"></ol>
+      <div class="row-btns">
+        <button id="btnCopy" class="btn" type="button">Copy results</button>
+        <button id="btnClearLog" class="btn" type="button">Clear log</button>
+      </div>
+    </div>
+  </aside>
+
+  <footer class="foot">
+    <p><strong>Fair draw.</strong> When the lights start, the finishing order is drawn with your browser's cryptographic random generator (<code>crypto.getRandomValues</code>). Every entry has the same chance; the race animates that order.</p>
+    <p><kbd>Space</kbd> start or skip · <kbd>F</kbd> fullscreen · click a car to see its driver. Built for 60–80 drivers; up to 120 fit on the grid.</p>
+  </footer>
+</div>
+
+<div id="announcer" class="sr" aria-live="polite"></div>
+
+<dialog id="results" aria-labelledby="resName" aria-describedby="resMeta">
+  <div class="res-flag" aria-hidden="true"></div>
+  <div class="res-body">
+    <p class="eyebrow" id="resEyebrow">Checkered flag</p>
+    <canvas id="resCar" width="240" height="91" aria-hidden="true"></canvas>
+    <h2 class="res-name" id="resName">Winner</h2>
+    <p class="res-meta" id="resMeta">Car #1 · 1st place</p>
+    <ol class="podium" id="podium" aria-label="Other places"></ol>
+    <div class="res-actions">
+      <button id="btnAgain" class="btn-go" type="button">Race again</button>
+      <button id="btnRemoveWinners" class="btn" type="button">Remove winner from list</button>
+      <button id="btnCloseRes" class="btn" type="button">Close</button>
+    </div>
+  </div>
+</dialog>
+
+</body>
+</html>
